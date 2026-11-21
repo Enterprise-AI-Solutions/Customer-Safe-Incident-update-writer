@@ -146,7 +146,7 @@ class SharedStateContextTest(unittest.TestCase):
             ("Verify Shared Awaiting", "Set Awaiting Approval", "awaiting_approval"),
             ("Verify Shared Approval", "Parse Explicit Slack Decision", "approval_received"),
             ("Verify Shared Success", "Verify HubSpot Association", "approved"),
-            ("Verify Shared Partial", "Verify HubSpot Note", "approved"),
+            ("Verify Shared Partial", "Verify HubSpot Note", "partial_success"),
             ("Verify Shared Failure", "Initialize Audit Context", "failed"),
             ("Verify Shared Rejected", "Parse Explicit Slack Decision", "rejected"),
             ("Verify Shared Expired", "Parse Explicit Slack Decision", "expired"),

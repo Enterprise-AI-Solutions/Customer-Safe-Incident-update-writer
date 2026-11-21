@@ -206,6 +206,24 @@ class CriticalWorkflowRegressionTest(unittest.TestCase):
                     self.nodes[name]["parameters"]["options"]["response"]["fullResponse"]
                 )
 
+    def test_approved_customer_message_is_published_to_servicenow_and_hubspot(self):
+        servicenow_body = self.nodes["Record Approval in ServiceNow"]["parameters"]["jsonBody"]
+        hubspot_body = self.nodes["Create HubSpot Note"]["parameters"]["jsonBody"]
+        self.assertIn("$json.draft.customer_message", servicenow_body)
+        self.assertIn("$json.draft.customer_message", hubspot_body)
+
+    def test_hubspot_association_uses_supported_v3_route(self):
+        url = self.nodes["Associate HubSpot Note to Contact"]["parameters"]["url"]
+        self.assertIn("/crm/v3/objects/notes/", url)
+        self.assertIn("/associations/contacts/", url)
+        self.assertNotIn("2026-09", url)
+
+    def test_partial_success_transition_uses_partial_status(self):
+        body = self.nodes["Update Shared Partial Success"]["parameters"]["jsonBody"]
+        verifier = self.nodes["Verify Shared Partial"]["parameters"]["jsCode"]
+        self.assertIn("status:'partial_success'", body)
+        self.assertIn("String(body.status||'')!==String('partial_success')", verifier)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

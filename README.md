@@ -5,7 +5,7 @@
 [![Validation](https://img.shields.io/badge/static--validation-passing-brightgreen.svg)](static-validation-v235.py)
 [![n8n](https://img.shields.io/badge/n8n-workflow%20package-EA4B71.svg)](https://n8n.io)
 
-An enterprise-ready, dual-workflow automation package for **n8n** that safely drafts, verifies, and publishes customer-facing incident updates. Integrates **Anthropic Claude 3.5 Sonnet** for grounded language synthesis, **Slack** for mandatory human-in-the-loop authorization, **ServiceNow** for incident management, and optional **HubSpot** CRM syncing, all bound by an OpenAPI-compliant tenant-isolated **Shared-State API**.
+An enterprise-ready, dual-workflow automation package for **n8n** that safely drafts, verifies, and publishes customer-facing incident updates. Integrates configurable **Anthropic Claude** language synthesis (Claude 3.5 Sonnet by default), **Slack** for mandatory human-in-the-loop authorization, **ServiceNow** for incident management, and optional **HubSpot** CRM syncing, all bound by an OpenAPI-compliant tenant-isolated **Shared-State API**.
 
 > **Release Status (v2.3.5):** Contains verified production-grade workflow exports, OpenAPI specifications, regression test harnesses, and automated static validation. All workflow structures, embedded JavaScript, and context-preservation mechanics pass offline validation without dependencies. Review `SECURITY-CHECKLIST.md` and `SETUP.md` prior to staging deployment.
 

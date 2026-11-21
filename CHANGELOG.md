@@ -7,9 +7,12 @@
 - Enabled full HTTP responses on ServiceNow approval and HubSpot note/association writes so downstream nodes can inspect status codes.
 - Updated ServiceNow and HubSpot note verifiers to unwrap response bodies while preserving request context.
 - Added regression tests for invalid and valid request routing, duplicate handling, write outcomes, and context preservation.
+- Added approved customer-message publication to ServiceNow comments and HubSpot notes.
+- Corrected HubSpot note-association routing and partial-success shared-state status semantics.
+- Sequenced HTTP 202 acceptance after verified execution-to-job mapping.
 - Updated release documentation and the shared-state OpenAPI package version.
 
-This release implements review findings 1 and 2 only. Other previously identified review items remain outside this release. No live integration or production-readiness claim is made.
+No live integration or production-readiness claim is made. The shared-state API remains an external deployment dependency.
 
 ## v2.3.4
 

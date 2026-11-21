@@ -172,8 +172,8 @@ accepted_incoming = [
     for edge in branch
     if edge.get("node") == "Return Accepted 202"
 ]
-if accepted_incoming != ["Verify Shared Accepted"]:
-    failures.append("HTTP 202 is not gated exclusively by verified shared acceptance")
+if accepted_incoming != ["Verify Execution Mapping Response"]:
+    failures.append("HTTP 202 is not gated exclusively by verified execution mapping")
 
 for request, verifier in expected_successors.items():
     successors = [
