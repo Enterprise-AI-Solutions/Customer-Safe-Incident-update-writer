@@ -1,9 +1,11 @@
 # Customer-Safe Incident Update Writer
 
-[![Release](https://img.shields.io/badge/release-v2.3.5-blue.svg)](CHANGELOG.md)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Validation](https://img.shields.io/badge/static--validation-passing-brightgreen.svg)](static-validation-v235.py)
-[![n8n](https://img.shields.io/badge/n8n-workflow%20package-EA4B71.svg)](https://n8n.io)
+[![n8n](https://img.shields.io/badge/n8n-EA4B71?style=for-the-badge&logo=n8n&logoColor=white)](https://n8n.io)
+[![Claude](https://img.shields.io/badge/Claude-D97757?style=for-the-badge&logo=anthropic&logoColor=white)](https://www.anthropic.com/claude)
+[![ServiceNow](https://img.shields.io/badge/ServiceNow-81B5A1?style=for-the-badge&logo=servicenow&logoColor=white)](https://www.servicenow.com/)
+[![HubSpot](https://img.shields.io/badge/HubSpot-FF7A59?style=for-the-badge&logo=hubspot&logoColor=white)](https://www.hubspot.com/)
+[![Slack](https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white)](https://slack.com/)
+[![MIT License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 An enterprise-ready, dual-workflow automation package for **n8n** that safely drafts, verifies, and publishes customer-facing incident updates. Integrates configurable **Anthropic Claude** language synthesis (Claude 3.5 Sonnet by default), **Slack** for mandatory human-in-the-loop authorization, **ServiceNow** for incident management, and optional **HubSpot** CRM syncing, all bound by an OpenAPI-compliant tenant-isolated **Shared-State API**.
 
