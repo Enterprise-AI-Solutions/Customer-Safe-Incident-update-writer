@@ -1,0 +1,299 @@
+{
+  "name": "Customer-Safe Incident Update — Error Handler v2.3.5",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "error_trigger",
+      "name": "Workflow Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const source=$input.first().json||{};const execution=(source.execution&&typeof source.execution==='object')?source.execution:{};const executionId=String(execution.id||source.executionId||source.execution?.id||'');const workflow=(source.workflow&&typeof source.workflow==='object')?source.workflow:{};const node=(source.node&&typeof source.node==='object')?source.node:{};const errorObject=(source.error&&typeof source.error==='object')?source.error:{};if(!executionId)throw new Error('ERROR_HANDLER_MISSING_EXECUTION_ID');return [{json:{executionId,workflowId:String(workflow.id||source.workflowId||'unknown'),workflowName:String(workflow.name||source.workflowName||'Customer-Safe Incident Update Writer'),failedNode:String(node.name||source.failedNode?.name||source.failedNode||'unknown'),errorMessage:String(errorObject.message||source.message||source.errorMessage||'Unknown workflow failure').slice(0,500),occurredAt:new Date().toISOString()}}];"
+      },
+      "id": "sanitize_error",
+      "name": "Sanitize Error Details",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.JOB_STATE_API_URL+\"/execution-mappings/\"+encodeURIComponent($json.executionId) }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer '+($env.JOB_STATE_API_TOKEN||'') }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "specifyBody": "json",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "neverError": true,
+            "fullResponse": true
+          }
+        }
+      },
+      "id": "lookup_execution_mapping",
+      "name": "Lookup Execution Mapping and Mark Failed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        430,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $env.SLACK_NOTIFICATION_CHANNEL_ID || $env.SLACK_APPROVAL_CHANNEL_ID }}",
+          "mode": "id"
+        },
+        "text": "=⚠️ Customer-Safe workflow failure\nWorkflow: {{ $json.workflowName }}\nExecution: `{{ $json.executionId }}`\nFailed node: `{{ $json.failedNode }}`\nMapping status: {{ $json.mappingFound?\"mapping found and job failed\":\"mapping missing or update failed\" }}\nTime: {{ $json.occurredAt }}\nReview n8n execution and shared job state.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "id": "notify_error",
+      "name": "Slack — Controlled Failure",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        540,
+        300
+      ],
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "SLACK_OAUTH2",
+          "name": "Slack OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response=$input.first().json||{};const status=Number(response.statusCode||response.response?.statusCode||0);const executionId=String($('Sanitize Error Details').first().json.executionId||'');if(!status||status<100||status>599)return [{json:{mappingFound:false,operatorNotice:true,executionId,notice:'Execution mapping lookup returned missing status'}}];if(status===404)return [{json:{mappingFound:false,operatorNotice:true,executionId,notice:'Execution mapping not found'}}];if(status!==200)return [{json:{mappingFound:false,operatorNotice:true,executionId,notice:'Execution mapping lookup failed HTTP '+status}}];const body=response.body||response.data||response.json||response;const mappedExecutionId=String(body.executionId||'');const jobId=String(body.jobId||body.job_id||'').trim();const tenantId=String(body.tenantId||body.tenant_id||'').trim();if(!mappedExecutionId||mappedExecutionId!==executionId||!jobId||!tenantId)return [{json:{mappingFound:false,operatorNotice:true,executionId,notice:'Execution mapping response missing or mismatched execution, job, or tenant'}}];return [{json:{mappingFound:true,operatorNotice:false,executionId,jobId,tenantId}}];"
+      },
+      "id": "verify_error_mapping",
+      "name": "Verify Error Mapping and Job Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.JOB_STATE_API_URL+'/jobs/'+encodeURIComponent($json.jobId) }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer '+($env.JOB_STATE_API_TOKEN||'') }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Authenticated-Tenant-ID",
+              "value": "={{ $json.tenantId }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({status:'failed',outcome:'failed',errorCode:'WORKFLOW_ERROR',errorMessage:$('Sanitize Error Details').first().json.errorMessage.slice(0,200),updatedAt:new Date().toISOString()}) }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "neverError": true,
+            "fullResponse": true
+          }
+        }
+      },
+      "id": "mark_mapped_job_failed",
+      "name": "Mark Mapped Job Failed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.mappingFound }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "error_mapping_found",
+      "name": "Error Mapping Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response=$input.first().json||{};const status=Number(response.statusCode||response.response?.statusCode||0);if(!status||status<100||status>599)throw new Error('ERROR_JOB_UPDATE_MISSING_STATUS');if(status<200||status>=300)throw new Error('ERROR_JOB_UPDATE_FAILED_HTTP_'+status);const body=response.body||response.data||response.json||response;const mapping=$('Verify Error Mapping and Job Update').first().json||{};if(!mapping.mappingFound||!mapping.jobId||!mapping.tenantId)throw new Error('ERROR_JOB_UPDATE_MAPPING_MISSING');if(body.success!==true||String(body.jobId||body.job_id||'')!==String(mapping.jobId)||String(body.tenantId||body.tenant_id||'')!==String(mapping.tenantId)||String(body.status||'')!=='failed')throw new Error('ERROR_JOB_UPDATE_RESPONSE_MISMATCH');return [{json:{jobMarkStatus:'failed',mappingFound:true,executionId:mapping.executionId,jobId:mapping.jobId,tenantId:mapping.tenantId,operatorNotice:false,sharedStateResponse:body}}];"
+      },
+      "id": "verify_mark_failed",
+      "name": "Verify Mark Failed Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Workflow Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Sanitize Error Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sanitize Error Details": {
+      "main": [
+        [
+          {
+            "node": "Lookup Execution Mapping and Mark Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Execution Mapping and Mark Failed": {
+      "main": [
+        [
+          {
+            "node": "Verify Error Mapping and Job Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Error Mapping and Job Update": {
+      "main": [
+        [
+          {
+            "node": "Error Mapping Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Mapping Found?": {
+      "main": [
+        [
+          {
+            "node": "Mark Mapped Job Failed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack — Controlled Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Mapped Job Failed": {
+      "main": [
+        [
+          {
+            "node": "Verify Mark Failed Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Mark Failed Response": {
+      "main": [
+        [
+          {
+            "node": "Slack — Controlled Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": false,
+    "saveExecutionProgress": false,
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none"
+  },
+  "tags": [
+    "n8n",
+    "incident-management",
+    "error-handler",
+    "v2.3"
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "version": "2.3.0"
+  }
+}

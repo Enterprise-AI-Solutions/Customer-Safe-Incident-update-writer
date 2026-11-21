@@ -1,0 +1,186 @@
+openapi: 3.0.3
+info:
+  title: Customer-Safe Incident Shared Job State API
+  version: 2.3.5
+servers:
+  - url: https://job-state.example.internal
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    Job:
+      type: object
+      required: [jobId, tenantId, status]
+      properties:
+        jobId: {type: string}
+        tenantId: {type: string}
+        requestId: {type: string}
+        status:
+          type: string
+          enum: [accepted, processing, awaiting_approval, approval_received, rejected, expired, approved, partial_success, failed]
+        outcome: {type: string}
+        servicenowRecorded: {type: boolean}
+        hubspotRecorded: {type: boolean}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+        expiresAt: {type: string, format: date-time}
+    JobTransition:
+      type: object
+      required: [success, jobId, tenantId, status]
+      properties:
+        success: {type: boolean, enum: [true]}
+        jobId: {type: string}
+        tenantId: {type: string}
+        status:
+          type: string
+          enum: [accepted, processing, awaiting_approval, approval_received, rejected, expired, approved, partial_success, failed]
+    ExecutionMapping:
+      type: object
+      required: [executionId, jobId, tenantId]
+      properties:
+        executionId: {type: string}
+        jobId: {type: string}
+        tenantId: {type: string}
+    ExecutionMappingCreated:
+      allOf:
+        - $ref: '#/components/schemas/ExecutionMapping'
+        - type: object
+          required: [success]
+          properties:
+            success: {type: boolean, enum: [true]}
+paths:
+  /jobs:
+    post:
+      summary: Atomically create tenant/job and claim idempotency
+      parameters:
+        - name: X-Authenticated-Tenant-ID
+          in: header
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tenantId, clientId, idempotencyKey, requestId]
+              properties:
+                tenantId: {type: string}
+                clientId: {type: string}
+                idempotencyKey: {type: string}
+                requestId: {type: string}
+                status: {type: string, enum: [accepted]}
+      responses:
+        '201':
+          description: Job created and idempotency key claimed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/JobTransition'
+                  - type: object
+                    required: [requestId]
+                    properties:
+                      requestId: {type: string}
+        '409': {description: Duplicate idempotency key}
+        '429': {description: Tenant rate limit}
+        '401': {description: Authentication failure}
+        '403': {description: Authenticated tenant mismatch}
+  /jobs/{jobId}:
+    get:
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: {type: string}
+        - name: X-Authenticated-Tenant-ID
+          in: header
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Tenant-scoped job state
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Job'
+        '403': {description: Tenant mismatch}
+        '404': {description: Job not found}
+    patch:
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: {type: string}
+        - name: X-Authenticated-Tenant-ID
+          in: header
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: {type: string, enum: [accepted, processing, awaiting_approval, approval_received, rejected, expired, approved, partial_success, failed]}
+                outcome: {type: string}
+                servicenowRecorded: {type: boolean}
+                hubspotRecorded: {type: boolean}
+      responses:
+        '200':
+          description: Transition applied atomically
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobTransition'
+        '409': {description: Invalid transition or version conflict}
+        '403': {description: Tenant mismatch}
+        '404': {description: Job not found}
+  /execution-mappings:
+    post:
+      parameters:
+        - name: X-Authenticated-Tenant-ID
+          in: header
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [executionId, jobId, tenantId]
+              properties:
+                executionId: {type: string}
+                jobId: {type: string}
+                tenantId: {type: string}
+      responses:
+        '201':
+          description: Execution mapping persisted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionMappingCreated'
+        '409': {description: Mapping conflict}
+  /execution-mappings/{executionId}:
+    get:
+      parameters:
+        - name: executionId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Execution mapping found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionMapping'
+        '404': {description: Mapping missing}

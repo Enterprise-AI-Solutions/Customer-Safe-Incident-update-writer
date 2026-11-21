@@ -1,0 +1,26 @@
+{
+  "name": "customer-safe-incident-update-writer",
+  "version": "2.3.5",
+  "description": "Enterprise-ready dual-workflow n8n automation package for generating, approving, and publishing customer-safe incident updates.",
+  "scripts": {
+    "validate": "python static-validation-v235.py",
+    "test:context": "python test-context-preservation-v235.py",
+    "test:critical": "python test-critical-workflow-fixes-v235.py",
+    "test": "python static-validation-v235.py"
+  },
+  "keywords": [
+    "n8n",
+    "n8n-workflow",
+    "incident-management",
+    "servicenow",
+    "claude",
+    "slack-approval",
+    "hubspot"
+  ],
+  "author": "Enterprise AI Solutions",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Enterprise-AI-Solutions/Customer-Safe-Incident-update-writer.git"
+  }
+}
